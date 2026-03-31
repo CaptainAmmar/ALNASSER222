@@ -1,0 +1,185 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: settings
+    //   - agency: AgencySettings { name, logo, address, phone, socialLinks }
+    //
+    // Collection: users
+    //   - userId: UserProfile { name, email, phone, role, permissions, photoURL, isOnline, lastActive }
+    //
+    // Collection: vessels
+    //   - vesselId: Vessel { name, manifestNumber, arrivalDate, departureDate, status, captainName, captainPhone }
+    //
+    // Collection: billsOfLading
+    //   - blId: BillOfLading { number, date, vesselId, cargoType, grossWeight, netWeight, quantity, unit }
+    //
+    // Collection: customsDeclarations
+    //   - declarationId: CustomsDeclaration { type, code, number, date, consignor, consignee, declarant, clearingAgent, vesselId, blId, customsItemId, customsFees, cargoType, grossWeight, netWeight, quantity, unit, totalValue }
+    //
+    // Collection: customsFees
+    //   - feeId: CustomsFee { declarationType, declarationNumber, date, feeType, feeValue }
+    //
+    // Collection: customsItems
+    //   - itemId: CustomsItem { code, description, feeValue }
+    //
+    // Collection: trucks
+    //   - truckId: Truck { plateNumber, driverName, driverPhone }
+    //
+    // Collection: operations
+    //   - operationId: Operation { type, vesselId, blId, truckId, netWeight, quantity, employeeId, employeeName, timestamp }
+    //
+    // Collection: deletedOperations
+    //   - deletedId: Operation + { deletedBy, deletedAt }
+    //
+    // Collection: messages
+    //   - messageId: Message { senderId, receiverId, content, timestamp, read }
+    //
+    // Collection: notifications
+    //   - notificationId: Notification { userId, title, content, timestamp, read }
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isBootstrapManager() {
+      return isAuthenticated() && 
+             request.auth.token.email == "ammar.mouhamed.82@gmail.com" &&
+             request.auth.token.email_verified == true;
+    }
+
+    function isManager() {
+      return isBootstrapManager() || 
+             (isAuthenticated() && 
+              exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager');
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasPermission(perm) {
+      return isManager() || 
+             (isAuthenticated() && 
+              exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+              (perm in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions || 
+               'all' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions));
+    }
+
+    // Test connection
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Agency Settings
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isManager();
+    }
+
+    // Users
+    match /users/{userId} {
+      allow get: if isAuthenticated() && (isOwner(userId) || isManager());
+      allow list: if isAuthenticated(); // Allow searching by email during login
+      allow create: if isAuthenticated() && (isOwner(userId) || isManager());
+      allow update: if isAuthenticated() && (isOwner(userId) || isManager());
+      allow delete: if isManager();
+    }
+
+    // Vessels
+    match /vessels/{vesselId} {
+      allow read: if isAuthenticated();
+      allow write: if isManager();
+    }
+
+    // Bills of Lading
+    match /billsOfLading/{blId} {
+      allow read: if isAuthenticated();
+      allow write: if isManager();
+    }
+
+    // Customs
+    match /customsDeclarations/{declarationId} {
+      allow read: if isAuthenticated();
+      allow write: if isManager();
+    }
+    match /customsFees/{feeId} {
+      allow read: if isAuthenticated();
+      allow write: if isManager();
+    }
+    match /customsItems/{itemId} {
+      allow read: if isAuthenticated();
+      allow write: if isManager();
+    }
+
+    // Trucks
+    match /trucks/{truckId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isManager();
+    }
+
+    // Operations
+    match /operations/{operationId} {
+      allow read: if isAuthenticated();
+      allow create: if hasPermission('insert');
+      allow update: if hasPermission('edit');
+      allow delete: if hasPermission('delete');
+    }
+
+    // Deleted Operations
+    match /deletedOperations/{deletedId} {
+      allow read: if isManager();
+      allow create: if isAuthenticated();
+      allow update, delete: if isManager();
+    }
+
+    // Messages
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.senderId || 
+        request.auth.uid == resource.data.receiverId ||
+        isManager() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.oldId == resource.data.senderId ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.oldId == resource.data.receiverId))
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.receiverId ||
+        isManager() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.oldId == resource.data.receiverId)
+      ) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if isManager();
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId ||
+        isManager() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.oldId == resource.data.userId)
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId ||
+        isManager() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.oldId == resource.data.userId)
+      ) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId ||
+        isManager() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.oldId == resource.data.userId)
+      );
+    }
+  }
+}

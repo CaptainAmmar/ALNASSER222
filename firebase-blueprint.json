@@ -1,0 +1,193 @@
+{
+  "entities": {
+    "AgencySettings": {
+      "title": "Agency Settings",
+      "description": "General settings for the maritime agency",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "logo": { "type": "string", "description": "Base64 or URL of the logo" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "socialLinks": {
+          "type": "object",
+          "properties": {
+            "facebook": { "type": "string" },
+            "twitter": { "type": "string" },
+            "instagram": { "type": "string" },
+            "linkedin": { "type": "string" }
+          }
+        }
+      }
+    },
+    "User": {
+      "title": "User",
+      "description": "Application user (Manager or Employee)",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["manager", "employee"] },
+        "permissions": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["insert", "edit", "delete", "read_only", "all"] }
+        },
+        "photoURL": { "type": "string" },
+        "isOnline": { "type": "boolean" },
+        "lastActive": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Vessel": {
+      "title": "Vessel",
+      "description": "Vessel information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "manifestNumber": { "type": "string" },
+        "arrivalDate": { "type": "string", "format": "date" },
+        "departureDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["anchored", "operating", "departed"] },
+        "captainName": { "type": "string" },
+        "captainPhone": { "type": "string" },
+        "agentName": { "type": "string" }
+      },
+      "required": ["name", "manifestNumber", "arrivalDate", "status"]
+    },
+    "BillOfLading": {
+      "title": "Bill of Lading",
+      "description": "Bill of lading details",
+      "type": "object",
+      "properties": {
+        "number": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "vesselId": { "type": "string" },
+        "cargoType": { "type": "string" },
+        "grossWeight": { "type": "number" },
+        "netWeight": { "type": "number" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string", "enum": ["roll", "piece", "package", "head", "bundle", "other"] }
+      },
+      "required": ["number", "vesselId", "cargoType"]
+    },
+    "CustomsDeclaration": {
+      "title": "Customs Declaration",
+      "description": "Customs declaration details",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["import", "export", "transit"] },
+        "code": { "type": "string" },
+        "number": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "consignor": { "type": "string" },
+        "consignee": { "type": "string" },
+        "declarant": { "type": "string" },
+        "clearingAgent": { "type": "string" },
+        "vesselId": { "type": "string" },
+        "blId": { "type": "string" },
+        "customsItemId": { "type": "string" },
+        "customsFees": { "type": "number" },
+        "cargoType": { "type": "string" },
+        "grossWeight": { "type": "number" },
+        "netWeight": { "type": "number" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "totalValue": { "type": "number" }
+      },
+      "required": ["type", "number", "vesselId"]
+    },
+    "CustomsFee": {
+      "title": "Customs Fee",
+      "description": "Individual customs fee record",
+      "type": "object",
+      "properties": {
+        "declarationType": { "type": "string" },
+        "declarationNumber": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "feeType": { "type": "string" },
+        "feeValue": { "type": "number" }
+      }
+    },
+    "CustomsItem": {
+      "title": "Customs Item",
+      "description": "Customs item definition",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "description": { "type": "string" },
+        "unit": { "type": "string" },
+        "customsDuty": { "type": "number" },
+        "serviceFee": { "type": "number" },
+        "exportDuty": { "type": "number" },
+        "notes": { "type": "string" }
+      }
+    },
+    "Truck": {
+      "title": "Truck",
+      "description": "Truck and driver information",
+      "type": "object",
+      "properties": {
+        "plateNumber": { "type": "string" },
+        "driverName": { "type": "string" },
+        "driverPhone": { "type": "string" }
+      },
+      "required": ["plateNumber"]
+    },
+    "Operation": {
+      "title": "Operation",
+      "description": "Port operation (loading/discharging)",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["discharge", "loading"] },
+        "vesselId": { "type": "string" },
+        "blId": { "type": "string" },
+        "truckId": { "type": "string" },
+        "netWeight": { "type": "number" },
+        "quantity": { "type": "number" },
+        "employeeId": { "type": "string" },
+        "employeeName": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "vesselId", "blId", "truckId"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Internal message",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" }
+      }
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "System notification",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" }
+      }
+    }
+  },
+  "firestore": {
+    "/settings/agency": { "schema": "AgencySettings", "description": "Agency general settings" },
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/vessels/{vesselId}": { "schema": "Vessel", "description": "Vessel records" },
+    "/billsOfLading/{blId}": { "schema": "BillOfLading", "description": "Bill of lading records" },
+    "/customsDeclarations/{declarationId}": { "schema": "CustomsDeclaration", "description": "Customs declarations" },
+    "/customsFees/{feeId}": { "schema": "CustomsFee", "description": "Customs fee records" },
+    "/customsItems/{itemId}": { "schema": "CustomsItem", "description": "Customs item definitions" },
+    "/trucks/{truckId}": { "schema": "Truck", "description": "Truck records" },
+    "/operations/{operationId}": { "schema": "Operation", "description": "Port operations" },
+    "/deletedOperations/{deletedId}": { "schema": "Operation", "description": "Archived deleted operations" },
+    "/messages/{messageId}": { "schema": "Message", "description": "Internal messages" },
+    "/notifications/{notificationId}": { "schema": "Notification", "description": "System notifications" }
+  }
+}
